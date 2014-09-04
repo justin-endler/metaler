@@ -1,99 +1,97 @@
-inlets = 2;
-outlets = 1;
+// detailed color algorithm
+// * evaluate 3 colors to a macro rhythm
+// * example:
+//   * B , F,0,0,0,0, 7, F,0,0,0,0, F,F,0,0,0,0, 4,0,0,0,0,0, E,5,0,0,0,0
+//   * 12,15,0,0,0,0, 7,15,0 ...
+//   * ^ that become a macro beat that every intstrument hits on, like: hit -> rest 11 beats, hit, rest 14 beats, hit, hit, hit ...
+// * pick a different color scheme and use it to dirty-up the macro beat for the drum part
+// * repeat for bass
+// * repeat for guitar
+var  _ = require('lodash');
+var Colors = require('./Colors');
+var EventList = require('./EventList');
+var NoteEvent = require('./NoteEvent');
+var timeUnit = 100;
+var carryPitchInToMacroBeat = Math.random > .6;
 
-var events = [];
-// detonate's outlets
-var eventKeys = [
-  'time',
-  'pitch',
-  'velocity',
-  'duration',
-  'channel',
-  'track',
-  'extra1',
-  'extra2'
+require('./lodash-mixins');
+
+// compose
+function createMacroRhythmMap (self, colors) {
+  var repeat = 10;
+  var deltas = [];
+  // delta times
+  _.each(colors, function (color) {
+    deltas = deltas.concat(self.toDeltas(color));
+  });
+  // convert macro to on times
+  var count = 0;
+  var accumulated = [0];
+  while (repeat--) {
+    _.each(deltas, function (delta) {
+      count += delta + self.timeUnit;
+      accumulated.push(count);
+    });
+  }
+  // assign back to the object
+  self.macro = accumulated;
+}
+
+function createBassLine (self, colors) {
+  var repeat = 10;
+  var onTimes = [];
+  var pitches = [];
+  var velocities = [];
+  var lastOnTime = 0;
+
+  _.each(colors, function (color) {
+    // on times
+    onTimes = onTimes.concat(self.toOnTimes(color, lastOnTime));
+    lastOnTime = onTimes[onTimes.length - 1];
+    // pitches
+    pitches = pitches.concat(self.toPitches(color, 20, 40));
+  });
+  // create note events
+  var onTimesClone = _.clone(onTimes);
+  var pitchesClone = _.clone(pitches);
+  var macroClone = _.clone(self.macro);
+
+  var events = new EventList();
+  events.accumulate(onTimesClone, pitchesClone, macroClone, carryPitchInToMacroBeat);
+  events.repeat(10);
+
+  self.events.bass = events;
+}
+
+function createMetronome (self, colors) {
+  var events = new EventList();
+  var metronomeUnit = self.timeUnit * 3;
+  // count total time units
+  var clicks = Math.ceil(self.events.bass.getEvent(self.events.bass.length() - 1).time / metronomeUnit) + 1;
+  while (clicks--) {
+    events.push(new NoteEvent(clicks * metronomeUnit, 80, 70, 100, 1, 2, 0, 0));
+  }
+
+  self.events.metronome = events;
+}
+
+var callbacks = [
+  createMacroRhythmMap,
+  createBassLine,
+  createMetronome
 ];
 
-// @todo add README.md
-//   list dependencies
+var colorsSets = [
+  // reds
+  ['BF0000', '7F0000', 'FF0000', '400000', 'E50000'],
+  // analogous
+  ['2DFF63', 'E86429', '3AA3FF', 'E8D25F', 'B62DFF'],
+  ['2DFF63', 'E86429', '3AA3FF', 'E8D25F', 'B62DFF']
+];
 
-function Utility () {}
-Utility.prototype.out = function (noteEvent) {
-  var noteEventArray = [];
-  for (var i = 0, l = eventKeys.length; i < l; i++) {
-    noteEventArray.push(noteEvent[eventKeys[i]]);
-  }
-  outlet(0, noteEventArray);
-};
-Utility.prototype.log = function (l, x) {
-  if (x) {
-    return post(l + ': ' + x + '\n');
-  }
-  post(l + '\n');
-};
+var colors = new Colors(callbacks, colorsSets, timeUnit);
+var events = new EventList();
 
-var utility = new Utility();
+events.merge(colors.events.bass, colors.events.metronome);
+events.dump();
 
-
-// message callbacks
-function dump () {
-  for (var i = 0, l = events.length; i < l; i++) {
-    events[i].post();
-  }
-}
-
-function normalize (key, limit) {
-  var highest = 0;
-  // default, normalize velocity, limit 127
-  if (!key) {
-    key = 'velocity';
-  }
-  if (!limit) {
-    limit = 127;
-  }
-
-  _.each(events, function (noteEvent) {
-    if (noteEvent[key] > highest) {
-      highest = noteEvent[key];
-    }
-  });
-  _.each(events, function (noteEvent) {
-    // value / highest = newValue / limit
-    noteEvent[key] = Math.ceil((limit * noteEvent[key]) / highest);
-  });
-}
-
-
-function NoteEvent (eventArray, eventKeys) {
-  // parse array into object properties according to keys
-  for (var i = 0, l = eventArray.length; i < l; i++) {
-    this[eventKeys[i]] = eventArray[i];
-  }
-}
-
-NoteEvent.prototype.transpose = function (offset) {
-  this.pitch += offset;
-};
-
-NoteEvent.prototype.toString = function () {
-  var str = '{\n';
-  for (var key in this) {
-    if (this.hasOwnProperty(key)) {
-      str += '\n  ' + key + ': ' + this[key] + ',';
-    }
-  }
-  str = str.slice(0, -1) + '\n}\n';
-  return str;
-};
-
-NoteEvent.prototype.post = function () {
-  post(this.toString() + '\n');
-};
-
-// receive midi event
-function list () {
-  var noteEvent = new NoteEvent(arrayfromargs(arguments), eventKeys);
-  // store event
-  events.push(noteEvent);
-  utility.out(noteEvent);
-}
