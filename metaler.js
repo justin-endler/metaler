@@ -65,7 +65,7 @@ function createBassLine (self, colors) {
 
 function createMetronome (self, colors) {
   var events = new EventList();
-  var metronomeUnit = self.timeUnit * 3;
+  var metronomeUnit = self.timeUnit * 4;
   // count total time units
   var clicks = Math.ceil(self.events.bass.getEvent(self.events.bass.length() - 1).time / metronomeUnit) + 1;
   while (clicks--) {
@@ -89,7 +89,7 @@ var colorsSets = [
   ['2DFF63', 'E86429', '3AA3FF', 'E8D25F', 'B62DFF']
 ];
 
-var colors = new Colors(callbacks, colorsSets, timeUnit);
+var colors = new Colors(callbacks, colorsSets, timeUnit, 6);
 var events = new EventList();
 
 events.merge(colors.events.bass, colors.events.metronome);

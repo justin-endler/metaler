@@ -3,7 +3,7 @@ var _ = require('lodash');
 module.exports = Colors;
 
 // @todo make this inherit a CompositionObect interface or something to standardize a way of writing
-function Colors (callbackSet, colorsSet, timeUnit) {
+function Colors (callbackSet, colorsSet, timeUnit, repeatAndRotate) {
   this.deltas = [];
   this.durations = [];
   this.pitches = [];
@@ -12,6 +12,13 @@ function Colors (callbackSet, colorsSet, timeUnit) {
   this.timeUnit = timeUnit;
   this.accumulatedDelta = 0;
   this.events = {};
+
+  if (repeatAndRotate) {
+    this.repeatAndRotate(colorsSet, repeatAndRotate);
+  }
+
+  console.info('colorsSet:', colorsSet); // @test
+
   // waterfall through composition callbacks
   var self = this;
   _.each(callbackSet, function (callback, index) {
@@ -24,7 +31,7 @@ Colors.prototype.toDeltas = function (hex) {
   return _.map(hex, function (hexValue) {
     return parseInt(hexValue, 16) * self.timeUnit;
   });
-}
+};
 
 Colors.prototype.toOnTimes = function (hex, offset) {
   var self = this;
@@ -36,10 +43,28 @@ Colors.prototype.toOnTimes = function (hex, offset) {
   });
 
   return hex;
-}
+};
 
 Colors.prototype.toPitches = function (hex, limit, offset) {
   return _.map(hex, function (hexValue) {
     return _.normalize(parseInt(hexValue, 16), 12, limit, offset);
   });
-}
+};
+
+// ['BF0000', '7F0000', 'FF0000', '400000', 'E50000'],
+// ['BF0000', '7F0000', 'FF0000', '400000', 'E50000', '7F0000', 'FF0000', '400000', 'E50000', 'BF0000'],
+
+Colors.prototype.repeatAndRotate = function (colorsSet, repetitions) {
+  //var newColorsSet = colorsSet;
+  _.each(colorsSet, function (colorSet, index) {
+    var i = repetitions;
+    var rotated = _.clone(colorSet);
+    while (i--) {
+      rotated = rotated.slice(1).concat(rotated.slice(0, 1));
+      colorSet = colorSet.concat(rotated);
+    }
+    colorsSet[index] = colorSet;
+  });
+  //console.info('colorsSet:', colorsSet); // @test
+  //return newColorsSet;
+};
