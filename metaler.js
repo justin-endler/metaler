@@ -63,6 +63,19 @@ function createBassLine (self, colors) {
   self.events.bass = events;
 }
 
+function createDrums (self, colors) {
+  // repeat below as many times as possible between macro beats
+  // perhaps add drum-specific colors accents, but first try without
+  // hh: x   x   x   x   x   x   x     x
+  //  s:   x     x   x x   x     x   x   x
+  //  b: x   x x   x     x   x     x
+  var events = new EventList();
+  //console.info('self.macro', self.macro); // @test
+  for (var i = 0; i < 10000; i = i + self.timeUnit) {
+    // @todo ready to make rhythm map for drum and compare with it in this loop to make the note events
+  }
+}
+
 function createMetronome (self, colors) {
   var events = new EventList();
   var metronomeUnit = self.timeUnit * 4;
@@ -78,6 +91,7 @@ function createMetronome (self, colors) {
 var callbacks = [
   createMacroRhythmMap,
   createBassLine,
+  createDrums,
   createMetronome
 ];
 
