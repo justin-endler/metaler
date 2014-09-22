@@ -3,7 +3,8 @@ var NoteEvent = require('./NoteEvent');
 var _ = require('lodash');
 var fs = require('fs');
 
-function EventList () {
+function EventList (name) {
+  this.name = name;
   // @todo make this truly private
   this.events = [];
 }
@@ -81,7 +82,7 @@ EventList.prototype.accumulate = function (onTimes, pitches, macro, carryPitchTo
   var currentMacro = macro.shift();
   // add macro event
   if (currentMacro !== undefined && onTime >= currentMacro) {
-    this.events.push(new NoteEvent(currentMacro, pitch, 127, 90, 1, 1, 0, 0));
+    this.events.push(new NoteEvent(currentMacro, pitch, 100, 90, 1, 1, 0, 0));
     if (onTime !== currentMacro) {
       onTimes.unshift(onTime);
       if (carryPitchToMacro) {
@@ -92,7 +93,7 @@ EventList.prototype.accumulate = function (onTimes, pitches, macro, carryPitchTo
   }
   // add instrument event
   if (onTime !== currentMacro) {
-    this.events.push(new NoteEvent(onTime, pitch, 127, 90, 1, 1, 0, 0));
+    this.events.push(new NoteEvent(onTime, pitch, 100, 90, 1, 1, 0, 0));
     macro.unshift(currentMacro);
   }
   return this.accumulate(onTimes, pitches, macro, carryPitchToMacro);
@@ -117,7 +118,7 @@ EventList.prototype.dump = function () {
     // on-time to delta
     var previous = (self.events[index - 1] || {time: 0}).time;
     e.time -= previous;
-    dump += e;
+    dump += this.name + ' ' + e;
   });
   fs.writeFile('./output/eventlist.txt', dump, function () {
     console.log('DUMPED FILE');

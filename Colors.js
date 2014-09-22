@@ -17,8 +17,6 @@ function Colors (callbackSet, colorsSet, timeUnit, repeatAndRotate) {
     this.repeatAndRotate(colorsSet, repeatAndRotate);
   }
 
-  console.info('colorsSet:', colorsSet); // @test
-
   // waterfall through composition callbacks
   var self = this;
   _.each(callbackSet, function (callback, index) {

@@ -38,7 +38,7 @@ function createMacroRhythmMap (self, colors) {
 }
 
 function createBassLine (self, colors) {
-  var repeat = 10;
+  var repeat = 1;
   var onTimes = [];
   var pitches = [];
   var velocities = [];
@@ -56,9 +56,9 @@ function createBassLine (self, colors) {
   var pitchesClone = _.clone(pitches);
   var macroClone = _.clone(self.macro);
 
-  var events = new EventList();
+  var events = new EventList('bass');
   events.accumulate(onTimesClone, pitchesClone, macroClone, carryPitchInToMacroBeat);
-  events.repeat(10);
+  events.repeat(repeat);
 
   self.events.bass = events;
 }
@@ -66,27 +66,71 @@ function createBassLine (self, colors) {
 function createDrums (self, colors) {
   // repeat below as many times as possible between macro beats
   // perhaps add drum-specific colors accents, but first try without
-  var rhythm = {
-    hh : 'x x x x x x x x x x x x x x x x x ',
-     s : ' x  x xx x  x x x x  x xx x  x x x',
-     b : 'x xx x  x x  x   x xx x  x x  x   '
+  var events = {
+    highHat: new EventList('highHat'),
+    snare: new EventList('snare'),
+    bassDrum: new EventList('bassDrum')
   };
-  var highHat = new EventList();
-  var snare = new EventList();
-  var bassDrum = new EventList();
-  //console.info('self.macro', self.macro); // @test
-  for (var i = 0; i < 10000; i = i + self.timeUnit) {
-    // @todo ready to make rhythm map for drum and compare with it in this loop to make the note events
+  var rhythm = {
+    highHat : 'x x x x x x x x x x x x x x x x x ',
+    snare   : ' x  x xx x  x x x x  x xx x  x x x',
+    bassDrum: 'x xx x  x x  x   x xx x  x x  x   '
+  };
+  var pitches = {
+    highHat: '80',
+    snare: '75',
+    bassDrum: '60'
+  };
+  var velocities = {
+    highHat: '84',
+    snare: '95',
+    bassDrum: '127'
+  };
+  // set limit for length of bass track
+  var limit = getLastBassOnTime(self) / self.timeUnit;
+  var rhythmIndex;
+  // get the length of the seed rhythm
+  var length = rhythm[_.findKey(rhythm, function () {
+    return true;
+  })].length;
+  var onTime;;
+  var limitIndex = 0;
+  var currentMacroIndex = 0;
+  var currentMacro = 0;
+  var currentLimit;
+  while (limitIndex < limit) {
+    // console.info('self.macro[currentMacroIndex]:', self.macro[currentMacroIndex]); // @test
+    // console.info('currentMacro pre:', currentMacro); // @test
+    currentMacro = self.macro[currentMacroIndex] - currentMacro;
+    // console.info('currentMacro post:', currentMacro); // @test
+    currentLimit = currentMacro / self.timeUnit;
+    // console.info('currentLimit:', currentLimit); // @test
+    for (var i = 0; i < currentLimit; i++) {
+      rhythmIndex = i % length;
+      onTime = i * self.timeUnit;
+      _.forOwn(rhythm, function (hits, instrument) {
+        if (hits.charAt(rhythmIndex) === 'x') {
+          // console.info('onTime:', onTime); // @test
+          // console.info('pitches[instrument]:', pitches[instrument]); // @test
+          // console.info('velocities[instrument]:', velocities[instrument]); // @test
+          events[instrument].push(new NoteEvent(onTime, pitches[instrument], velocities[instrument], 50, 1, 2, 0, 0));
+        }
+      });
+      limitIndex++;
+    }
+    currentMacroIndex++;
   }
+
+  _.extend(self.events, events);
 }
 
 function createMetronome (self, colors) {
-  var events = new EventList();
+  var events = new EventList('metronome');
   var metronomeUnit = self.timeUnit * 4;
   // count total time units
-  var clicks = Math.ceil(self.events.bass.getEvent(self.events.bass.length() - 1).time / metronomeUnit) + 1;
+  var clicks = Math.ceil(getLastBassOnTime(self) / metronomeUnit) + 1;
   while (clicks--) {
-    events.push(new NoteEvent(clicks * metronomeUnit, 80, 70, 100, 1, 2, 0, 0));
+    events.push(new NoteEvent(clicks * metronomeUnit, 80, 1, 100, 1, 2, 0, 0));
   }
 
   self.events.metronome = events;
@@ -96,7 +140,7 @@ var callbacks = [
   createMacroRhythmMap,
   createBassLine,
   createDrums,
-  createMetronome
+  //createMetronome
 ];
 
 var colorsSets = [
@@ -104,12 +148,24 @@ var colorsSets = [
   ['BF0000', '7F0000', 'FF0000', '400000', 'E50000'],
   // analogous
   ['2DFF63', 'E86429', '3AA3FF', 'E8D25F', 'B62DFF'],
-  ['2DFF63', 'E86429', '3AA3FF', 'E8D25F', 'B62DFF']
+  ['2DFF63', 'E86429', '3AA3FF', 'E8D25F', 'B62DFF'],
+  //['2DFF63', 'E86429', '3AA3FF', 'E8D25F', 'B62DFF']
 ];
 
 var colors = new Colors(callbacks, colorsSets, timeUnit, 6);
 var events = new EventList();
 
-events.merge(colors.events.bass, colors.events.metronome);
+events.merge(
+  colors.events.bass,
+  colors.events.highHat,
+  colors.events.snare,
+  colors.events.bassDrum
+  //colors.events.metronome
+);
 events.dump();
+
+// convenience
+function getLastBassOnTime (self) {
+  return self.events.bass.getEvent(self.events.bass.length() - 1).time;
+}
 
