@@ -73,7 +73,7 @@ EventList.prototype.merge = function () {
   });
 };
 
-EventList.prototype.accumulate = function (onTimes, pitches, macro, carryPitchToMacro) {
+EventList.prototype.accumulate = function (name, onTimes, pitches, macro, carryPitchToMacro) {
   if (!(onTimes.length && pitches.length)) {
     return this.events;
   }
@@ -82,21 +82,41 @@ EventList.prototype.accumulate = function (onTimes, pitches, macro, carryPitchTo
   var currentMacro = macro.shift();
   // add macro event
   if (currentMacro !== undefined && onTime >= currentMacro) {
-    this.events.push(new NoteEvent(currentMacro, pitch, 100, 90, 1, 1, 0, 0));
+    this.events.push(new NoteEvent({
+      name: name,
+      time: currentMacro,
+      pitch: pitch,
+      velocity: 100,
+      duration: 90,
+      channel: 1,
+      track: 1,
+      extra1: 0,
+      extra2: 0
+    }));
     if (onTime !== currentMacro) {
       onTimes.unshift(onTime);
       if (carryPitchToMacro) {
         pitches.unshift(pitch);
       }
     }
-    return this.accumulate(onTimes, pitches, macro, carryPitchToMacro);
+    return this.accumulate(name, onTimes, pitches, macro, carryPitchToMacro);
   }
   // add instrument event
   if (onTime !== currentMacro) {
-    this.events.push(new NoteEvent(onTime, pitch, 100, 90, 1, 1, 0, 0));
+    this.events.push(new NoteEvent({
+      name: name,
+      time: onTime,
+      pitch: pitch,
+      velocity: 100,
+      duration: 90,
+      channel: 1,
+      track: 1,
+      extra1: 0,
+      extra2: 0
+    }));
     macro.unshift(currentMacro);
   }
-  return this.accumulate(onTimes, pitches, macro, carryPitchToMacro);
+  return this.accumulate(name, onTimes, pitches, macro, carryPitchToMacro);
 }
 
 // utility
@@ -118,7 +138,7 @@ EventList.prototype.dump = function () {
     // on-time to delta
     var previous = (self.events[index - 1] || {time: 0}).time;
     e.time -= previous;
-    dump += this.name + ' ' + e;
+    dump += e;
   });
   fs.writeFile('./output/eventlist.txt', dump, function () {
     console.log('DUMPED FILE');

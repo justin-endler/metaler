@@ -57,7 +57,7 @@ function createBassLine (self, colors) {
   var macroClone = _.clone(self.macro);
 
   var events = new EventList('bass');
-  events.accumulate(onTimesClone, pitchesClone, macroClone, carryPitchInToMacroBeat);
+  events.accumulate('bass', onTimesClone, pitchesClone, macroClone, carryPitchInToMacroBeat);
   events.repeat(repeat);
 
   self.events.bass = events;
@@ -99,21 +99,24 @@ function createDrums (self, colors) {
   var currentMacro = 0;
   var currentLimit;
   while (limitIndex < limit) {
-    // console.info('self.macro[currentMacroIndex]:', self.macro[currentMacroIndex]); // @test
-    // console.info('currentMacro pre:', currentMacro); // @test
     currentMacro = self.macro[currentMacroIndex] - currentMacro;
-    // console.info('currentMacro post:', currentMacro); // @test
     currentLimit = currentMacro / self.timeUnit;
-    // console.info('currentLimit:', currentLimit); // @test
     for (var i = 0; i < currentLimit; i++) {
       rhythmIndex = i % length;
       onTime = i * self.timeUnit;
       _.forOwn(rhythm, function (hits, instrument) {
         if (hits.charAt(rhythmIndex) === 'x') {
-          // console.info('onTime:', onTime); // @test
-          // console.info('pitches[instrument]:', pitches[instrument]); // @test
-          // console.info('velocities[instrument]:', velocities[instrument]); // @test
-          events[instrument].push(new NoteEvent(onTime, pitches[instrument], velocities[instrument], 50, 1, 2, 0, 0));
+          events[instrument].push(new NoteEvent({
+            name: instrument,
+            time: onTime,
+            pitch: pitches[instrument],
+            velocity: velocities[instrument],
+            duration: 50,
+            channel: 1,
+            track: 2,
+            extra1: 0,
+            extra2: 0
+          }));
         }
       });
       limitIndex++;
@@ -130,7 +133,17 @@ function createMetronome (self, colors) {
   // count total time units
   var clicks = Math.ceil(getLastBassOnTime(self) / metronomeUnit) + 1;
   while (clicks--) {
-    events.push(new NoteEvent(clicks * metronomeUnit, 80, 1, 100, 1, 2, 0, 0));
+    events.push(new NoteEvent({
+      name: 'metronome',
+      time: clicks * metronomeUnit,
+      pitch: 80,
+      velocity: 1,
+      duration: 100,
+      channel: 1,
+      track: 2,
+      extra1: 0,
+      extra2: 0
+    }));
   }
 
   self.events.metronome = events;

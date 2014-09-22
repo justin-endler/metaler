@@ -1,5 +1,6 @@
 var _ = require('lodash');
 var eventKeys = [
+  'name',
   'time',
   'pitch',
   'velocity',
@@ -13,13 +14,14 @@ var keysLength = eventKeys.length;
 
 module.exports = NoteEvent;
 
-function NoteEvent () {
-  if (arguments.length !== keysLength) {
-    return {};
-  }
-  // parse array into object properties according to keys
+function NoteEvent (params) {
+  var key;
   for (var i = 0; i < keysLength; i++) {
-    this[eventKeys[i]] = arguments[i];
+    key = eventKeys[i];
+    if (!params.hasOwnProperty(key)) {
+      return {};
+    }
+    this[key] = params[key];
   }
 }
 
