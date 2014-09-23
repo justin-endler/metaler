@@ -100,10 +100,13 @@ function createDrums (self, colors) {
   var currentLimit;
   while (limitIndex < limit) {
     currentMacro = self.macro[currentMacroIndex] - currentMacro;
+    console.info('currentMacro', currentMacro); // @test
     currentLimit = currentMacro / self.timeUnit;
+    console.info('currentLimit', currentLimit); // @test
+    console.info('limitIndex', limitIndex); // @test
     for (var i = 0; i < currentLimit; i++) {
       rhythmIndex = i % length;
-      onTime = i * self.timeUnit;
+      onTime = (i + limitIndex) * self.timeUnit;
       _.forOwn(rhythm, function (hits, instrument) {
         if (hits.charAt(rhythmIndex) === 'x') {
           events[instrument].push(new NoteEvent({
@@ -175,6 +178,7 @@ events.merge(
   colors.events.bassDrum
   //colors.events.metronome
 );
+//console.info('events', events); // @test
 events.dump();
 
 // convenience
